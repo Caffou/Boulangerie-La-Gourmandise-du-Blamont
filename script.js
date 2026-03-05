@@ -4,6 +4,28 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // ===== Suppression du texte orphelin "d'anniversaire" =====
+    document.body.childNodes.forEach(node => {
+        if (node.nodeType === 3) {
+            const t = node.textContent.trim();
+            if (t === "d'anniversaire" || t === "d'anniversaire " || t.includes("d'anniversaire") && t.length < 20) {
+                node.remove();
+            }
+        }
+    });
+
+    // ===== Ombre sticky sur le header au scroll =====
+    const nav = document.getElementById('nav');
+    const onScroll = () => {
+        if (window.scrollY > 30) {
+            nav?.classList.add('scrolled');
+        } else {
+            nav?.classList.remove('scrolled');
+        }
+    };
+    window.addEventListener('scroll', onScroll);
+    onScroll();
+
     // ===== Parallax léger sur le hero (désactivé sur mobile pour les perfs) =====
     const heroBg = document.querySelector('.hero-bg.parallax-bg');
     if (heroBg && window.matchMedia('(min-width: 769px)').matches) {
@@ -12,20 +34,59 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ===== Menu mobile =====
+    // ===== Menu mobile (uniquement sur mobile) =====
     const navToggle = document.querySelector('.nav-toggle');
-    const navLinks = document.querySelector('.nav-links');
+    const navPanel = document.querySelector('.nav-panel');
+    const navOverlay = document.querySelector('.nav-overlay');
+    const navClose = document.querySelector('.nav-close');
+
+    function isMobile() {
+        return window.matchMedia('(max-width: 768px)').matches;
+    }
+
+    function openMenu() {
+        if (!isMobile()) return;
+        document.body.dataset.scrollY = window.scrollY;
+        navPanel?.classList.add('active');
+        navOverlay?.classList.add('active');
+        navToggle?.classList.add('active');
+        navToggle?.setAttribute('aria-label', 'Fermer le menu');
+        navOverlay?.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('menu-open');
+    }
+
+    function closeMenu() {
+        const scrollY = document.body.dataset.scrollY;
+        navPanel?.classList.remove('active');
+        navOverlay?.classList.remove('active');
+        navToggle?.classList.remove('active');
+        navToggle?.setAttribute('aria-label', 'Ouvrir le menu');
+        navOverlay?.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('menu-open');
+        if (scrollY) window.scrollTo(0, parseInt(scrollY, 10));
+    }
 
     navToggle?.addEventListener('click', () => {
-        navLinks?.classList.toggle('active');
-        navToggle?.classList.toggle('active');
+        if (!isMobile()) return;
+        if (navPanel?.classList.contains('active')) {
+            closeMenu();
+        } else {
+            openMenu();
+        }
     });
 
-    document.querySelectorAll('.nav-links a').forEach(link => {
-        link.addEventListener('click', () => {
-            navLinks?.classList.remove('active');
-            navToggle?.classList.remove('active');
-        });
+    navClose?.addEventListener('click', closeMenu);
+    navOverlay?.addEventListener('click', closeMenu);
+
+    document.querySelectorAll('.nav-panel .nav-links a').forEach(link => {
+        link.addEventListener('click', closeMenu);
+    });
+
+    // Fermer le menu si on redimensionne vers desktop
+    window.addEventListener('resize', () => {
+        if (!isMobile() && navPanel?.classList.contains('active')) {
+            closeMenu();
+        }
     });
 
     // ===== Formulaire de contact =====
@@ -33,26 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         alert('Merci pour votre message ! Nous vous recontacterons rapidement.');
         e.target.reset();
-    });
-
-    // ===== Formulaire de commande =====
-    const orderForm = document.getElementById('orderForm');
-    orderForm?.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const nom = document.getElementById('nom')?.value;
-        const telephone = document.getElementById('telephone')?.value;
-        const produit = document.getElementById('produit')?.value;
-        const heure = document.getElementById('heure')?.value;
-        
-        // Créer le lien WhatsApp ou tel: pour la réservation
-        const message = `Bonjour, je souhaite réserver :\n- Nom : ${nom}\n- Produits : ${produit || 'à préciser'}\n- Heure de retrait : ${heure || 'à préciser'}`;
-        const tel = '03322914231';
-        
-        // Option : ouvrir le clavier téléphonique ou WhatsApp
-        if (nom && telephone) {
-            alert(`Merci ${nom} ! Votre réservation a été prise en note.\n\nNous vous recontacterons au ${telephone} pour confirmer.\n\nVous pouvez aussi nous appeler au 03 22 91 42 31.`);
-            orderForm.reset();
-        }
     });
 
     // ===== Animations au scroll =====
@@ -78,4 +119,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // ===== Fermer la barre CTA (réservation / contact) =====
+    const ctaBar = document.getElementById('ctaBar');
+    const ctaBarClose = document.getElementById('ctaBarClose');
+
+    if (ctaBar && ctaBarClose) {
+        if (localStorage.getItem('ctaBarHidden') === 'true') {
+            ctaBar.classList.add('hidden');
+            document.body.classList.add('cta-bar-hidden');
+        }
+
+        ctaBarClose.addEventListener('click', () => {
+            ctaBar.classList.add('hidden');
+            document.body.classList.add('cta-bar-hidden');
+            localStorage.setItem('ctaBarHidden', 'true');
+        });
+    }
 });
